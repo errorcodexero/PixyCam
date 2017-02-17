@@ -235,22 +235,23 @@ bool PixyImpl::getStart()
  
     for (;;) {
 	uint16_t w = m_link.getWord();
-	if (w == EOF) {
+	if (w == -1) {
 	    return false;
 	}
 	else if (lastw == PIXY_START_WORD && w == PIXY_START_WORD) {
 	    m_blockType = NORMAL_BLOCK;
-	    return true;
+	    break;
 	}
 	else if (lastw == PIXY_START_WORD && w == PIXY_START_WORD_CC) {
 	    m_blockType = CC_BLOCK;
-	    return true;
+	    break;
 	}
 	else if (w == PIXY_START_WORDX) {
 	    m_link.getByte(); // resync
 	}
 	lastw = w; 
     }
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////

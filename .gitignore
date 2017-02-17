@@ -9,3 +9,5 @@
 Debug/
 Release/
 sfx/
+/UART/
+/TCP/

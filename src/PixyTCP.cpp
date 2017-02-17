@@ -1,70 +1,80 @@
-#include "PixyUART.h"
+#include "PixyTCP.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
 #include <cstdio>
 
 namespace Pixy {
 
-PixyUART::PixyUART( const std::string& device )
-  : m_device(device), m_fd(-1)
+PixyTCP::PixyTCP( const std::string& server, const std::string& service )
+  : m_server(server), m_service(service), m_ai(NULL), m_fd(-1)
 {
     ;
 }
 
-PixyUART::~PixyUART()
+PixyTCP::~PixyTCP()
 {
     close();
+
+    if (m_ai) {
+	freeaddrinfo(m_ai);
+	m_ai = NULL;
+    }
 }
 
-bool PixyUART::open()
+bool PixyTCP::open()
 {
 #ifdef TRACE
-    std::cerr << "PixyUART::open( \"" << m_device << "\" )" << std::endl;
+    std::cerr << "PixyTCP::open( \"" << m_host << "\", " << port << " )" << std::endl;
 #endif
 
     if (isOpen()) {
 #ifdef TRACE
-	std::cerr << "PixyUART::open: already open" << std::endl;
+	std::cerr << "PixyTCP::open: already open" << std::endl;
 #endif
 	return true;
     }
 
-    m_fd = ::open(m_device.c_str(), O_RDWR);
+    if (!m_ai) {
+	int err = getaddrinfo(m_server.c_str(), m_service.c_str(), NULL, &m_ai);
+	if (err != 0) {
+	    fprintf(stderr, "PixyTCP::getaddrinfo: %s\n", gai_strerror(err));
+	    return false;
+	}
+    }
+
+    m_fd = ::socket(m_ai->ai_family, m_ai->ai_socktype, m_ai->ai_protocol);
     if (m_fd == -1) {
-    	perror("open");
+    	perror("socket");
     	return false;
     }
 
-    struct termios t;
-    std::memset(&t, 0, sizeof t);
-    t.c_cflag = CS8 | CREAD | CLOCAL;
-    cfsetspeed(&t, B115200);
-    t.c_cc[VMIN] = 1;
-    t.c_cc[VTIME] = 0;
-
-    if (tcsetattr(m_fd, TCSANOW, &t) == -1) {
-	perror("tcsetattr");
+    if (connect(m_fd, m_ai->ai_addr, m_ai->ai_addrlen) != 0) {
+	perror("connect");
 	close();
 	return false;
     }
 
-
 #ifdef TRACE
-    std::cerr << "PixyUART::open OK, fd = " << m_fd << std::endl;
+    std::cerr << "PixyTCP::open OK, fd = " << m_fd << std::endl;
 #endif
     return true;
 }
 
-bool PixyUART::close()
+bool PixyTCP::close()
 {
 #ifdef TRACE
-    std::cerr << "PixyUART::close" << std::endl;
+    std::cerr << "PixyTCP::close" << std::endl;
 #endif
+
     if (isOpen()) {
 	::close(m_fd);
 	m_fd = -1;
@@ -72,12 +82,12 @@ bool PixyUART::close()
     return true;
 }
 
-bool PixyUART::isOpen() const
+bool PixyTCP::isOpen() const
 {
     return (m_fd != -1);
 }
 
-int PixyUART::getByte()
+int PixyTCP::getByte()
 {
     if (!open()) {
 	return -1;
@@ -88,7 +98,7 @@ int PixyUART::getByte()
     do {
 	n = read(m_fd, &b, 1);
 	if (n == -1) {
-	    perror("PixyUART::getByte");
+	    perror("PixyTCP::getByte");
 	    close();
 	    return -1;
 	}
@@ -101,7 +111,7 @@ int PixyUART::getByte()
     return b;
 }
 
-int PixyUART::getWord()
+int PixyTCP::getWord()
 {
     if (!open()) {
 	return -1;
@@ -117,7 +127,7 @@ int PixyUART::getWord()
     return (high << 8) | low;
 }
 
-int PixyUART::putString( const std::string& str )
+int PixyTCP::putString( const std::string& str )
 {
     if (!isOpen()) {
 	return -1;

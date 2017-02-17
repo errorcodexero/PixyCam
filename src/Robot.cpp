@@ -5,18 +5,36 @@
 #include <SampleRobot.h>
 
 #include "Pixy.h"
+
+#ifdef PIXY_UART
 #include "PixyUART.h"
+#endif
+
+#ifdef PIXY_TCP
+#include "PixyTCP.h"
+#endif
 
 using namespace Pixy;
 
 class Robot: public frc::SampleRobot {
 
 private:
+#ifdef PIXY_UART
     PixyUART uart;
+#endif
+#ifdef PIXY_TCP
+    PixyTCP tegra;
+#endif
     PixyCam camera;
 
 public:
-    Robot() : uart("/dev/ttyS1"), camera( uart ) {
+    Robot() :
+#ifdef PIXY_UART
+	uart("/dev/ttyS1"), camera( uart ) {
+#endif
+#ifdef PIXY_TCP
+	tegra("tegra-ubuntu.local", "6425"), camera( tegra ) {
+#endif
 	;
     }
 
