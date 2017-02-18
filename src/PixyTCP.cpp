@@ -32,16 +32,13 @@ PixyTCP::~PixyTCP()
 
 bool PixyTCP::open()
 {
-#ifdef TRACE
-    std::cerr << "PixyTCP::open( \"" << m_host << "\", " << port << " )" << std::endl;
-#endif
-
     if (isOpen()) {
-#ifdef TRACE
-	std::cerr << "PixyTCP::open: already open" << std::endl;
-#endif
 	return true;
     }
+
+#ifdef TRACE
+    std::cerr << "PixyTCP::open( \"" << m_server << "\", " << m_service << " )" << std::endl;
+#endif
 
     if (!m_ai) {
 	int err = getaddrinfo(m_server.c_str(), m_service.c_str(), NULL, &m_ai);

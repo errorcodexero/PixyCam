@@ -186,7 +186,7 @@ std::vector<Block> PixyImpl::getFrame()
 	uint16_t sum = block.signature + block.x + block.y + block.width + block.height;
 	if (sum != check) {
 #ifdef TRACE
-	    std::cerr << " CKSUM_ERR" << std::endl;
+	    std::cerr << " CKSUM_ERR: was " << std::hex << sum << std::dec << " expected " << std::hex << check << std::dec << std::endl;
 #endif
 	    break;
 	}
