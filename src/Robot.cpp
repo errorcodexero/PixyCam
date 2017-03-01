@@ -3,6 +3,7 @@
 #include <string>
 
 #include <SampleRobot.h>
+#include <DigitalOutput.h>
 
 #include "Pixy.h"
 
@@ -26,15 +27,18 @@ private:
     PixyTCP tegra;
 #endif
     PixyCam camera;
+    frc::DigitalOutput illuminator;
 
 public:
     Robot() :
 #ifdef PIXY_UART
-	uart("/dev/ttyS1"), camera( uart ) {
+	uart("/dev/ttyS1"), camera( uart ),
 #endif
 #ifdef PIXY_TCP
-	tegra("tegra-ubuntu.local", "6425"), camera( tegra ) {
+	tegra("tegra-ubuntu.local", "6425"), camera( tegra ),
 #endif
+	illuminator(10)
+	{
 	;
     }
 
@@ -44,9 +48,11 @@ public:
 
     void Disabled() override {
 	camera.disable();
+	illuminator.Set(0);
     }
 
     void Autonomous() override {
+	illuminator.Set(1);
 	camera.enable();
 	int frame = 0;
 	while (IsAutonomous() && IsEnabled()) {
@@ -63,6 +69,7 @@ public:
 	    }
 	}
 	camera.disable();
+	illuminator.Set(0);
     }
 
     /*
